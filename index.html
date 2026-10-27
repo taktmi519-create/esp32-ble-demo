@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP32 Bluetooth</title>
+</head>
+<body style="font-family:sans-serif;padding:24px">
+  <h2>ESP32 Bluetooth受信</h2>
+  <button id="connect">ESP32に接続</button>
+  <h3 id="status">未接続</h3>
+  <p id="data">受信データ：---</p>
+
+<script>
+const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+const CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+const status = document.getElementById("status");
+const data = document.getElementById("data");
+
+document.getElementById("connect").onclick = async () => {
+  try {
+    status.textContent = "機器を検索中...";
+
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "ESP32_Tanaka" }],
+      optionalServices: [SERVICE_UUID]
+    });
+
+    status.textContent = "接続中...";
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    const characteristic = await service.getCharacteristic(CHAR_UUID);
+
+    await characteristic.startNotifications();
+
+    characteristic.addEventListener(
+      "characteristicvaluechanged",
+      event => {
+        const text = new TextDecoder().decode(event.target.value);
+        data.textContent = "受信データ：" + text;
+      }
+    );
+
+    status.textContent = "接続成功！";
+  } catch (error) {
+    status.textContent = "エラー：" + error.message;
+  }
+};
+</script>
+</body>
+</html>
